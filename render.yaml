@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: jogo-da-memoria-ea
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: npm run server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: DATABASE_URL
+        sync: false
+      - key: CLOUD_SYNC_KEY
+        generateValue: true
