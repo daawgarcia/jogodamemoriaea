@@ -94,8 +94,10 @@ test('painel de leads exige usuário e senha, lista e exporta CSV', async t => {
   assert.equal(html.status, 200);
   assert.ok((await html.text()).includes('Pessoa Teste'));
   const csv = await fetch(`${base}/leads.csv?marketing=1`, { headers: basic('senha-forte-123') });
-  const text = await csv.text();
-  assert.ok(text.startsWith('﻿Data;Nome;'));
+  const bytes = Buffer.from(await csv.arrayBuffer());
+  assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+  const text = bytes.subarray(3).toString('utf8');
+  assert.ok(text.startsWith('Data;Nome;'));
   assert.ok(text.includes('teste@example.com'));
 });
 
