@@ -8,7 +8,7 @@ painel administrativo e sincronização opcional com o servidor da Esthetic Alig
 ## Modelo de funcionamento
 
 - **Um computador é a origem dos dados e do estoque.** O jogo não depende da
-  conexão com o Render para captar leads ou entregar prêmios.
+  conexão com o servidor para captar leads ou entregar prêmios.
 - Nome, e-mail, WhatsApp, cidade/UF e CRO/UF são solicitados. Estudantes não
   precisam informar CRO.
 - Os dados devem ser reais, conforme aviso no cadastro. O aplicativo valida
@@ -54,10 +54,12 @@ dados apenas em memória e nenhum prêmio real. O painel e a persistência só
 funcionam no Electron. Não use a demonstração para captar participantes.
 
 `npm run test:desktop` abre uma instância temporária real do Electron e verifica
-isolamento do preload, login/IPC, persistência, retomada, tabuleiro 2 × 4 sem
-rolagem em 1080 × 1920 e vitória com reserva de estoque. Os testes da API usam
+isolamento do preload, login/IPC, persistência, retomada, tabuleiro sem rolagem
+em quatro resoluções verticais e três horizontais e vitória com reserva de estoque.
+As peças ocupam toda a área livre do tabuleiro e os testes verificam tamanho
+mínimo e ausência de textos cortados. Os testes da API usam
 um cliente PostgreSQL simulado para confirmar transações e erros; a conexão ao
-PostgreSQL real é validada pelo `/health` depois do deploy no Render.
+PostgreSQL real é validada pelo `/health` depois do deploy no servidor.
 
 ### Fotos das peças
 
@@ -66,10 +68,38 @@ aparece exatamente duas vezes no tabuleiro, que tem oito peças. A lista em
 [shared/cards.json](shared/cards.json) define as imagens e legendas; o banco
 gera dois exemplares de cada item e embaralha a ordem a cada partida.
 
-As fotos mantêm a proporção original e são exibidas com `object-fit: contain`,
-em molduras claras, sem recortar nem esticar os produtos. O processamento
-reduz somente a resolução para no máximo 1280 pixels no lado maior e usa JPEG
-com qualidade 92; os arquivos originais não são modificados.
+As fotos são reenquadradas individualmente para retirar o excesso de fundo e
+dar destaque ao produto inteiro. Os recortes proporcionais estão definidos no
+script de preparação; os arquivos originais não são modificados. A exibição usa
+`object-fit: contain`, sem esticar ou cortar os produtos, com borda de apenas
+1 pixel e sem margem interna. O processamento limita a resolução a 1280 pixels
+no lado maior e usa JPEG com qualidade 92.
+
+As fotos ficam escondidas nas peças fechadas e aparecem somente ao tocar.
+Pares encontrados permanecem abertos; fotos diferentes voltam a se esconder
+após 1,1 segundo. O tabuleiro ocupa a largura e a altura disponíveis, com
+duas colunas e quatro linhas em retrato e quatro colunas e duas linhas em
+paisagem. As fotos mantêm a proporção mesmo quando o formato da peça muda.
+Para receber ajustes visuais, instale a versão nova por
+cima da anterior, sem desinstalar ou apagar o banco local.
+
+### Identidade visual
+
+A interface segue a referência de [estheticaligner.com.br](https://estheticaligner.com.br/):
+fundo claro, azul `#4071CE`, ciano `#00B4F2`, logotipo horizontal oficial
+e fonte Lato. A fonte e sua licença SIL Open Font License estão em
+`public/fonts`, incluídas na instalação para uso offline.
+
+O verso das oito peças e as cartas decorativas da abertura usam o símbolo
+circular fornecido pela empresa em PDF, convertido para `public/ea-symbol.png`.
+Para regenerar no Windows, sem enviar o PDF a serviços externos:
+
+```powershell
+.\scripts\prepare-brand-logo.ps1 -SourcePdf "C:\caminho\Icon_EA_Esthetic Aligner_Circular.pdf"
+```
+
+O ajuste visual não altera cadastro, brindes, sincronização, e-mails ou o
+enquadramento aprovado das fotos.
 
 Para gerar novamente as imagens a partir da pasta fornecida:
 
@@ -80,8 +110,8 @@ Para gerar novamente as imagens a partir da pasta fornecida:
 ## Instalador e preparação da TV
 
 O instalador é gerado automaticamente pelo GitHub a cada atualização do `main`
-(workflow **Gerar instalador Windows**). Baixe o `.exe` mais recente na página
-**Releases** do repositório. Para gerar localmente:
+(workflow **Gerar instalador Windows**). Baixe o `.exe` mais recente em
+https://github.com/daawgarcia/jogodamemoriaea/releases/latest. Para gerar localmente:
 
 ```powershell
 npm run dist:win
@@ -125,10 +155,64 @@ configure uma conta Windows dedicada e as políticas de quiosque apropriadas.
 - **Configurações:** a URL do servidor já vem preenchida; cole a chave de
   sincronização, verifique pendências,
   sincronizar, alternar tela cheia e encerrar.
+- **E-mails:** configurar a caixa Hostinger, editar os modelos para dentistas
+  e estudantes, testar o envio e acompanhar a fila e pedidos de retirada.
 
 O login bloqueia tentativas por um minuto depois de cinco senhas incorretas.
 O painel solicita novo login periodicamente. Não compartilhe a senha com
 participantes e não deixe o painel aberto no totem.
+
+## E-mails automáticos pela Hostinger
+
+O envio é feito **pelo aplicativo Windows**, independentemente da sincronização
+com o servidor.
+
+1. Abra a aba **E-mails** no painel da equipe.
+2. Informe a caixa Hostinger completa, nome do remetente e senha da caixa.
+   O servidor é `smtp.hostinger.com`, porta `465`, com TLS e validação de
+   certificado. A conta deve ser Hostinger Email; caixas Titan precisam de
+   outra configuração e não são suportadas por esta opção.
+3. Revise os dois modelos. `{nome}` é substituído pelo nome do participante.
+   São mensagens de texto simples; um rodapé explica o consentimento e como
+   solicitar a retirada respondendo ao remetente.
+4. Salve inicialmente com o envio automático **desmarcado**. Use **Testar
+   dentista** e **Testar estudante**. Os testes vão somente para a própria
+   caixa remetente; confira caixa de entrada e spam.
+5. Ative e salve quando os modelos estiverem aprovados. Isso também libera os
+   e-mails que já aguardam na fila desta versão.
+
+Somente **novos cadastros com autorização opcional de contato** entram na fila.
+Cadastros anteriores à atualização não são incluídos retroativamente. Cada
+endereço recebe no máximo um envio automático confirmado nesta instalação;
+virar peças, sincronizar dados ou reiniciar não cria novos e-mails. Partidas
+canceladas antes do envio não recebem a mensagem.
+
+A fila é gravada no mesmo banco local, na transação do cadastro. Com o aplicativo
+aberto, tenta-se um destinatário a cada 30 segundos. Sem conexão ou com recusa
+explícita do SMTP, o registro é preservado e as tentativas se espaçam de um minuto
+até uma hora, parando após oito falhas para revisão da equipe. Com o aplicativo
+fechado ou o computador suspenso, não há envio. Os limites diários e as regras
+antispam do plano contratado continuam valendo; o aplicativo não garante
+entregabilidade ou leitura. Configure SPF/DKIM/DMARC no domínio e valide com a
+Hostinger o volume permitido antes do evento.
+
+Uma desconexão durante a entrega ou o encerramento do aplicativo pode deixar
+o resultado **incerto**. SMTP não oferece garantia de entrega exatamente uma vez:
+esses registros não são repetidos automaticamente. Confira o recebimento com o
+destinatário ou os registros do provedor antes de liberar outra tentativa.
+O Message-ID é preservado, mas não garante deduplicação no destinatário.
+O painel distingue aceitação pelo SMTP de entrega na caixa de entrada.
+
+A equipe deve atender as respostas de retirada: use **Interromper contato**
+na fila. O endereço é bloqueado nesta instalação, as pendências são canceladas
+e a autorização dos registros correspondentes é atualizada, inclusive na
+próxima sincronização com o servidor. Isso não recolhe mensagens já aceitas
+pelo SMTP nem substitui a retirada em outras ferramentas comerciais.
+
+A senha SMTP é protegida pelo `safeStorage` do Electron (proteção vinculada à
+conta Windows), não é devolvida à interface e não é enviada ao servidor nem incluída no CSV.
+O backup contém a senha protegida; ao transferir para outra conta/computador,
+informe novamente a senha no painel. Os demais dados do banco não são criptografados.
 
 ## Banco local, troca de computador e operação offline
 
@@ -151,12 +235,12 @@ estoque **independentes**. Para transferir uma ação:
 2. Salve um backup e feche o aplicativo.
 3. Instale e abra uma vez no novo computador; depois feche.
 4. Substitua o banco da pasta `userData` pelo backup.
-5. Abra e confira estoque, leads e a conexão Render.
+5. Abra e confira estoque, leads e a conexão com o servidor.
 6. **Não volte a atender no computador antigo.** Duas cópias do mesmo banco
    não podem operar simultaneamente. Não há controle multiestação nesta versão.
 
 Cadastros, estoque, partida, imagens, teclado e música funcionam sem internet.
-O envio ao Render é tentado a cada 30 segundos, com confirmação por lote,
+O envio ao servidor é tentado a cada 30 segundos, com confirmação por lote,
 fila persistente e reenvio idempotente. Quedas não apagam registros locais.
 Alterações feitas enquanto um lote é enviado permanecem na fila.
 

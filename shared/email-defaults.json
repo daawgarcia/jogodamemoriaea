@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "username": "",
+  "fromName": "Esthetic Aligner",
+  "dentistSubject": "Foi um prazer receber você na Esthetic Aligner!",
+  "dentistBody": "Olá, {nome}!\n\nObrigado por participar da nossa ação no congresso.\n\nQuer saber mais sobre os alinhadores Esthetic Aligner e conhecer as possibilidades para a sua prática clínica? Responda a este e-mail e nossa equipe falará com você.\n\nEquipe Esthetic Aligner",
+  "studentSubject": "Seu próximo passo com a Esthetic Aligner",
+  "studentBody": "Olá, {nome}!\n\nObrigado por participar da nossa ação no congresso.\n\nÉ um prazer fazer parte da sua jornada na Odontologia. Para conhecer mais sobre os alinhadores Esthetic Aligner e receber informações para estudantes, responda a este e-mail.\n\nEquipe Esthetic Aligner"
+}

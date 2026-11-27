@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { call } from './api';
 import { Field, useKeyboard } from './keyboard';
+import { EmailSettings } from './EmailSettings';
 import type { AdminInfo } from './types';
 
 const DEFAULT_CLOUD_URL = 'https://jogo.estheticaligner.com.br';
@@ -12,7 +13,7 @@ export function Admin({ configured, onClose, onError }: { configured: boolean; o
   const [token, setToken] = useState('');
   const [data, setData] = useState<AdminInfo | null>(null);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<'prizes' | 'leads' | 'settings'>('prizes');
+  const [tab, setTab] = useState<'prizes' | 'leads' | 'settings' | 'emails'>('prizes');
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [url, setUrl] = useState('');
@@ -85,8 +86,10 @@ export function Admin({ configured, onClose, onError }: { configured: boolean; o
       <button aria-pressed={tab === 'prizes'} onClick={() => { setActive(null); setTab('prizes'); }}>Brindes</button>
       <button aria-pressed={tab === 'leads'} onClick={() => { setActive(null); setTab('leads'); }}>Leads</button>
       <button aria-pressed={tab === 'settings'} onClick={() => { setActive(null); setTab('settings'); }}>Configurações</button>
+      <button aria-pressed={tab === 'emails'} onClick={() => { setActive(null); setTab('emails'); }}>E-mails</button>
     </nav>
     {notice && <p className="success" role="status">{notice}</p>}
+    {tab === 'emails' && <EmailSettings token={token} info={data.emails} busy={busy} execute={execute} />}
     {confirm && <div className="confirm-box" role="alertdialog" aria-label="Confirmar operação"><p>{confirm.label}</p><div className="button-row"><button className="danger" disabled={busy} onClick={() => { const task = confirm.run; setConfirm(null); void execute(task, 'Operação concluída.'); }}>Confirmar</button><button className="secondary" onClick={() => setConfirm(null)}>Voltar</button></div></div>}
     {tab === 'prizes' && <>
       <form className="panel" onSubmit={event => { event.preventDefault(); void execute(async () => { await call('prize.add', { token, name, quantity: Number(quantity) }); setName(''); setQuantity(''); }, 'Brinde cadastrado.'); }}>
