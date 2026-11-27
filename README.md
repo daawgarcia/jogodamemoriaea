@@ -2,7 +2,8 @@
 
 Aplicativo Windows para uma TV vertical touchscreen da Esthetic Aligner, com
 cadastro, quatro pares de fotos dos produtos, música original gerada no próprio aplicativo, brindes,
-painel administrativo e sincronização opcional com PostgreSQL no Render.
+painel administrativo e sincronização opcional com o servidor da Esthetic Aligner
+(https://jogo.estheticaligner.com.br).
 
 ## Modelo de funcionamento
 
@@ -78,6 +79,10 @@ Para gerar novamente as imagens a partir da pasta fornecida:
 
 ## Instalador e preparação da TV
 
+O instalador é gerado automaticamente pelo GitHub a cada atualização do `main`
+(workflow **Gerar instalador Windows**). Baixe o `.exe` mais recente na página
+**Releases** do repositório. Para gerar localmente:
+
 ```powershell
 npm run dist:win
 ```
@@ -94,7 +99,8 @@ certificado e configure a assinatura no electron-builder.
 4. Abra pelo ícone **Jogo da Memória EA**. A versão instalada inicia em tela
    cheia. F11 alterna a tela cheia.
 5. Toque em **Equipe: configurar aplicativo** no primeiro acesso. Crie uma senha
-   de pelo menos dez caracteres e informe um contato de privacidade real.
+   de pelo menos dez caracteres. O contato de privacidade já vem preenchido com
+   marketing@estheticaligner.com.br.
 6. Cadastre nomes e quantidades dos brindes; confira o estoque físico.
 7. Saia do painel e faça um teste completo. Toque cinco vezes no logotipo para
    voltar ao login administrativo. Não há senha padrão.
@@ -116,7 +122,8 @@ configure uma conta Windows dedicada e as políticas de quiosque apropriadas.
   confirmar entrega e exportar CSV com separador `;` e BOM UTF-8.
 - **Backup:** salvar uma cópia completa do banco local. Não exporte o banco
   para pastas públicas: ele contém dados pessoais e a chave de sincronização.
-- **Configurações:** informar URL e chave do Render, verificar pendências,
+- **Configurações:** a URL do servidor já vem preenchida; cole a chave de
+  sincronização, verifique pendências,
   sincronizar, alternar tela cheia e encerrar.
 
 O login bloqueia tentativas por um minuto depois de cinco senhas incorretas.
@@ -153,7 +160,21 @@ O envio ao Render é tentado a cada 30 segundos, com confirmação por lote,
 fila persistente e reenvio idempotente. Quedas não apagam registros locais.
 Alterações feitas enquanto um lote é enviado permanecem na fila.
 
-## Render / PostgreSQL
+## Servidor de sincronização (VPS Esthetic Aligner)
+
+Em produção, a API roda na VPS da Esthetic Aligner em
+https://jogo.estheticaligner.com.br, com PostgreSQL local, HTTPS e backup diário.
+A chave de sincronização fica somente no servidor e no aplicativo.
+
+### Painel de leads
+
+https://jogo.estheticaligner.com.br/leads mostra os cadastros recebidos (somente
+leitura) e permite baixar o CSV, inclusive só os que autorizaram contato. O acesso
+pede usuário e senha (`LEADS_USER`, padrão `equipe`, e `LEADS_PASSWORD`, mínimo de
+12 caracteres). Sem `LEADS_PASSWORD`, o painel fica desligado. Cinco senhas
+erradas bloqueiam o acesso por um minuto.
+
+### Hospedagem alternativa (Render)
 
 O serviço na nuvem é uma API de sincronização, **não** o aplicativo do
 participante nem um painel web. A administração acontece no Windows.

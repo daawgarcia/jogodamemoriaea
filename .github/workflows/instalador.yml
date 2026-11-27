@@ -1,0 +1,39 @@
+name: Gerar instalador Windows
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  instalador:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist:win
+      - name: Guardar instalador como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: instalador-jogo-da-memoria-ea
+          path: release/*.exe
+          retention-days: 30
+      - name: Publicar na página de Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: instalador-${{ github.run_number }}
+          name: Instalador ${{ github.run_number }} — Jogo da Memória EA
+          body: |
+            Instalador do Jogo da Memória EA para Windows 10/11 (64 bits).
+            Baixe o arquivo .exe abaixo e execute no computador do totem.
+            O Windows pode avisar "editor desconhecido": clique em "Mais informações" e depois em "Executar assim mesmo".
+          files: release/*.exe
+          make_latest: true

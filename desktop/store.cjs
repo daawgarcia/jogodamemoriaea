@@ -242,7 +242,7 @@ class Store {
       return;
     }
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash) throw new Error('Use a URL HTTPS do serviço Render, sem credenciais ou parâmetros.');
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash) throw new Error('Use a URL HTTPS do servidor, sem credenciais ou parâmetros.');
     if (typeof key !== 'string' || key.length < 32 || key.length > 256) throw new Error('A chave de sincronização deve ter de 32 a 256 caracteres.');
     this.transaction(() => {
       this.setSetting('cloudUrl', parsed.origin);
