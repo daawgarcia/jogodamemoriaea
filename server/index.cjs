@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const { timingSafeEqual } = require('node:crypto');
 const { z } = require('zod');
 const { syncRecordSchema } = require('../shared/validation.cjs');
+const { addLeadsPanel } = require('./leads.cjs');
 
 const batchSchema = z.object({ deviceId: z.uuid(), records: z.array(syncRecordSchema).min(1).max(100) });
 
@@ -15,7 +16,7 @@ function databaseOptions(connectionString) {
   };
 }
 
-async function createApp(pool, key) {
+async function createApp(pool, key, options = {}) {
   if (!key || key.length < 32 || key.length > 256) throw new Error('Configure CLOUD_SYNC_KEY com 32 a 256 caracteres.');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ea_leads (
@@ -26,6 +27,7 @@ async function createApp(pool, key) {
   `);
   const api = express();
   api.disable('x-powered-by');
+  api.set('trust proxy', 'loopback');
   api.use(express.json({ limit: '1mb' }));
   api.use((_req, res, next) => {
     res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
@@ -64,6 +66,7 @@ async function createApp(pool, key) {
       next(error);
     } finally { client?.release(); }
   });
+  addLeadsPanel(api, pool, { user: options.leadsUser, password: options.leadsPassword });
   api.use((error, _req, res, _next) => {
     console.error('Erro na API:', error.message);
     res.status(error.type === 'entity.parse.failed' ? 400 : 500).json({ error: 'Não foi possível processar a requisição.' });
@@ -77,7 +80,7 @@ if (require.main === module) {
     let pool;
     try { pool = new Pool(databaseOptions(process.env.DATABASE_URL)); }
     catch (error) { console.error('Configuração de banco inválida:', error.message); process.exitCode = 1; }
-    if (pool) createApp(pool, process.env.CLOUD_SYNC_KEY).then(api => {
+    if (pool) createApp(pool, process.env.CLOUD_SYNC_KEY, { leadsUser: process.env.LEADS_USER, leadsPassword: process.env.LEADS_PASSWORD }).then(api => {
       const server = api.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('API EA iniciada.'));
       const shutdown = () => server.close(() => pool.end().then(() => process.exit(0)));
       process.on('SIGTERM', shutdown);

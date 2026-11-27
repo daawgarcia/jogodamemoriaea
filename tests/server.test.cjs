@@ -74,3 +74,33 @@ test('URL externa Render habilita TLS com certificado verificado; interna usa re
   assert.equal(databaseOptions('postgresql://test:test@dpg-exemplo-a/ea').ssl, undefined);
   assert.throws(() => databaseOptions('endereço inválido'));
 });
+
+test('painel de leads exige usuário e senha, lista e exporta CSV', async t => {
+  const stored = record();
+  stored.lead.marketing = true;
+  const pool = {
+    async query(sql) { return sql.includes('FROM ea_leads') ? { rows: [{ payload: stored }] } : { rows: [] }; },
+    async connect() { throw new Error('não usado'); }
+  };
+  const api = await createApp(pool, key, { leadsUser: 'equipe', leadsPassword: 'senha-forte-123' });
+  const server = api.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const basic = pass => ({ Authorization: 'Basic ' + Buffer.from(`equipe:${pass}`).toString('base64') });
+  assert.equal((await fetch(`${base}/leads`)).status, 401);
+  assert.equal((await fetch(`${base}/leads`, { headers: basic('errada') })).status, 401);
+  const html = await fetch(`${base}/leads`, { headers: basic('senha-forte-123') });
+  assert.equal(html.status, 200);
+  assert.ok((await html.text()).includes('Pessoa Teste'));
+  const csv = await fetch(`${base}/leads.csv?marketing=1`, { headers: basic('senha-forte-123') });
+  const text = await csv.text();
+  assert.ok(text.startsWith('﻿Data;Nome;'));
+  assert.ok(text.includes('teste@example.com'));
+});
+
+test('painel de leads fica desligado sem senha configurada', async t => {
+  const { health } = await fixture(t);
+  const base = (await health()).url.replace('/health', '');
+  assert.equal((await fetch(`${base}/leads`)).status, 404);
+});

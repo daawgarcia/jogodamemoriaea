@@ -3,10 +3,12 @@ import { call } from './api';
 import { Field, useKeyboard } from './keyboard';
 import type { AdminInfo } from './types';
 
+const DEFAULT_CLOUD_URL = 'https://jogo.estheticaligner.com.br';
+
 export function Admin({ configured, onClose, onError }: { configured: boolean; onClose: () => void; onError: (message: string) => void }) {
   const [password, setPassword] = useState('');
   const [hasSetup, setHasSetup] = useState(configured);
-  const [contact, setContact] = useState('');
+  const [contact, setContact] = useState('marketing@estheticaligner.com.br');
   const [token, setToken] = useState('');
   const [data, setData] = useState<AdminInfo | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,7 +51,7 @@ export function Admin({ configured, onClose, onError }: { configured: boolean; o
       const auth = await call('login', { password });
       setToken(auth); setPassword('');
       const info = await refresh(auth);
-      setUrl(info.cloudUrl);
+      setUrl(info.cloudUrl || DEFAULT_CLOUD_URL);
     } catch (error) { onError(error instanceof Error ? error.message : 'Não foi possível entrar.'); }
     finally { setBusy(false); }
   }
@@ -115,16 +117,16 @@ export function Admin({ configured, onClose, onError }: { configured: boolean; o
     </>}
     {tab === 'settings' && <>
       <form className="panel" onSubmit={event => { event.preventDefault(); void execute(async () => { await call('cloud', { token, url, key }); setKey(''); }, 'Configuração salva. Confira o status abaixo.'); }}>
-        <h2>Sincronização com o Render</h2>
-        <p>O aplicativo funciona mesmo sem internet. O banco deste computador é a origem do estoque; o Render recebe uma cópia dos leads e resultados.</p>
-        <Field label="URL HTTPS da API" value={url} onChange={setUrl} placeholder="https://jogo-da-memoria-ea.onrender.com" />
-        <Field label={data.cloudConfigured ? 'Nova chave (obrigatória para alterar a conexão)' : 'Chave CLOUD_SYNC_KEY'} value={key} onChange={setKey} type="password" />
+        <h2>Sincronização com o servidor</h2>
+        <p>O aplicativo funciona mesmo sem internet. O banco deste computador é a origem do estoque; o servidor da Esthetic Aligner recebe uma cópia dos leads e resultados.</p>
+        <Field label="URL HTTPS da API" value={url} onChange={setUrl} placeholder={DEFAULT_CLOUD_URL} />
+        <Field label={data.cloudConfigured ? 'Nova chave (obrigatória para alterar a conexão)' : 'Chave de sincronização'} value={key} onChange={setKey} type="password" />
         <button className="primary" disabled={busy}>Salvar conexão</button>
         <p className="muted">Para desligar a sincronização, salve a URL vazia. A chave não aparece novamente no painel.</p>
       </form>
       <div className="panel"><h2>Estado dos dados</h2><p>{data.pending} registros aguardando envio.<br />Último envio: {data.lastSync ? new Date(data.lastSync).toLocaleString('pt-BR') : 'Ainda não realizado'}</p>
         {data.syncError && <p className="error-inline">{data.syncError}</p>}
-        {!data.cloudConfigured && <p className="muted">Render ainda não configurado. Dados salvos somente neste computador.</p>}
+        {!data.cloudConfigured && <p className="muted">Sincronização ainda não configurada. Dados salvos somente neste computador.</p>}
         <button className="secondary" disabled={busy || !data.cloudConfigured} onClick={() => void execute(() => call('sync', { token }), 'Sincronização concluída.')}>Sincronizar agora</button>
         <p className="muted">Identificador da instalação: {data.deviceId}</p></div>
       <div className="panel"><h2>Aplicativo e TV</h2><p>Configure a TV como retrato no Windows e use a resolução nativa. F11 alterna a tela cheia. A música depende do volume do computador.</p><div className="button-row">

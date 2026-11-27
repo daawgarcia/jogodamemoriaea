@@ -37,7 +37,7 @@ async function sync() {
         signal: AbortSignal.timeout(20000),
         redirect: 'error'
       });
-      if (!response.ok) throw new Error(`O Render respondeu HTTP ${response.status}. Confira a URL e a chave.`);
+      if (!response.ok) throw new Error(`O servidor respondeu HTTP ${response.status}. Confira a URL e a chave.`);
       const receipt = await response.json();
       if (receipt.accepted !== records.length) throw new Error('O servidor não confirmou todos os registros. A fila foi preservada.');
       store.acknowledge(records);
