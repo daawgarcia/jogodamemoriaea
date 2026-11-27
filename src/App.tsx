@@ -123,7 +123,7 @@ export default function App() {
   return <>
     {isDemo && <div className="demo-banner">DEMONSTRAÇÃO VISUAL · Não salva leads nem distribui brindes reais</div>}
     <header className="brand-header">
-      <button className="brand" onClick={adminAccess} aria-label="Esthetic Aligner. Cinco toques abrem o acesso da equipe."><img src="./logo-esthetic-aligner.png" alt="Esthetic Aligner" /></button>
+      <button className="brand" onClick={adminAccess} aria-label="Esthetic Aligner. Cinco toques abrem o acesso da equipe."><img src="./logo-esthetic-aligner-site.png" alt="Esthetic Aligner" /></button>
       <div className="live-tag"><span /> EXPERIÊNCIA EA</div>
     </header>
     <main className={`main-content screen-${screen}`}>
@@ -133,7 +133,7 @@ export default function App() {
         <p className="eyebrow">UMA CONEXÃO QUE VAI ALÉM DO SORRISO</p>
         <h1>Jogo da<br /><span>Memória EA<span className="title-dot">.</span></span></h1>
         <p className="hero-description">Um desafio para sua memória.<br />Uma surpresa para você levar.</p>
-        <div className="hero-cards" aria-hidden="true"><div className="hero-card back">EA<span>ESTHETIC ALIGNER</span></div><div className="hero-card front"><ProductImage face={0} /><span>CONEXÕES QUE SORRIEM</span></div><div className="hero-card back">EA<span>ESTHETIC ALIGNER</span></div></div>
+        <div className="hero-cards" aria-hidden="true"><div className="hero-card back"><img src="./ea-symbol.png" alt="" /></div><div className="hero-card front"><CardIcon face={0} /><span>ENCONTRE OS PARES</span></div><div className="hero-card back"><img src="./ea-symbol.png" alt="" /></div></div>
         <div className="how-it-works"><div><b>01</b><span>Preencha<br />seus dados</span></div><div><b>02</b><span>Encontre<br />os {cards.length} pares</span></div><div><b>03</b><span>Retire seu<br />brinde na equipe</span></div></div>
         <button className="primary start-button" disabled={!info.configured || info.available === 0} onClick={() => { setScreen('register'); setStep(1); setLead(emptyLead); }}>Toque para jogar <span>↗</span></button>
         {!info.configured && <button className="secondary" onClick={() => setScreen('admin')}>Equipe: configurar aplicativo</button>}
@@ -156,11 +156,11 @@ export default function App() {
               <button type="button" className={lead.student ? 'selected' : ''} aria-pressed={lead.student} onClick={() => { setActive(null); setLead(previous => ({ ...previous, student: true, cro: '' })); }}>Estudante</button>
             </fieldset>
             {!lead.student && <Field label="CRO e UF" value={lead.cro} onChange={value => field('cro', value)} placeholder="Ex.: CRO-SP 123456" required />}
-            <label className="checkbox"><input type="checkbox" checked={lead.acknowledged} required onChange={event => field('acknowledged', event.target.checked)} /><span>Li o aviso de privacidade e estou ciente do uso dos dados para registrar a participação e a entrega do brinde. *</span></label>
+            <label className="checkbox"><input type="checkbox" checked={lead.acknowledged} required onChange={event => field('acknowledged', event.target.checked)} /><span>Estou ciente de que meus dados serão coletados para participar da ação e do sorteio de brindes. *</span></label>
             <label className="checkbox"><input type="checkbox" checked={lead.marketing} onChange={event => field('marketing', event.target.checked)} /><span>Quero receber novidades e contato da Esthetic Aligner por e-mail e WhatsApp. <small>Opcional. Não interfere na participação.</small></span></label>
             <button type="button" className="privacy-link" onClick={() => { setActive(null); setPrivacy(true); }}>Ler aviso de privacidade</button>
           </>}
-          <div className="data-notice"><span>ⓘ</span><p><strong>Seus dados precisam ser reais.</strong><br />Eles serão usados para identificar sua participação e registrar a entrega do brinde.</p></div>
+          <div className="data-notice"><span>ⓘ</span><p><strong>Seus dados precisam ser reais.</strong><br />Serão usados para a participação e o sorteio de brindes e, com sua autorização, para enviar informações sobre a Esthetic Aligner.</p></div>
           <button className="primary" disabled={busy}>{busy ? 'Salvando seu cadastro…' : step === 1 ? 'Continuar →' : 'Salvar e liberar meu jogo →'}</button>
           <button type="button" className="text-button" onClick={() => { setActive(null); if (step === 2) setStep(1); else { setLead(emptyLead); setScreen('welcome'); } }}>← Voltar</button>
         </form>
@@ -175,21 +175,21 @@ export default function App() {
       </section> : <section className="game-screen">
         <p className="eyebrow">AGORA É COM VOCÊ</p><h1>Encontre os <span>{game.totalPairs} pares.</span></h1><p className="game-instruction">Toque em duas peças. Combine os produtos EA.</p>
         <div className="game-score"><div><strong>{game.pairs}<span>/{game.totalPairs}</span></strong><span>PARES ENCONTRADOS</span></div><div className="score-progress"><span style={{ width: `${game.pairs / game.totalPairs * 100}%` }} /></div><div><strong>{game.moves}</strong><span>JOGADAS</span></div></div>
-        <div className="memory-grid" aria-label={`Tabuleiro de ${game.totalPairs} pares`} style={{ gridTemplateColumns: `repeat(${game.totalPairs <= 4 ? 2 : 3}, 1fr)`, gridTemplateRows: `repeat(${Math.ceil(game.cards.length / (game.totalPairs <= 4 ? 2 : 3))}, minmax(0, 1fr))` }}>
+        <div className="board-area"><div className="memory-grid" aria-label={`Tabuleiro de ${game.totalPairs} pares`}>
           {game.cards.map(card => <button type="button" key={card.index} className={`memory-card ${card.face !== null ? 'flipped' : ''} ${card.matched ? 'matched' : ''}`}
             aria-label={`Peça ${card.index + 1}${card.face !== null ? `: ${faceNames[card.face]}` : ': virar'}${card.matched ? ', par encontrado' : ''}`}
             disabled={card.matched || card.face !== null || game.mismatchUntil > Date.now()} onClick={() => void flip(card.index)}>
-            <span className="card-inner"><span className="card-back"><span>EA</span><small>ESTHETIC ALIGNER</small><i>+</i></span>
-              <span className="card-front">{card.face !== null && <><ProductImage face={card.face} /><small>{faceNames[card.face]}</small></>}{card.matched && <b>✓</b>}</span></span>
+            <span className="card-inner"><span className="card-back" aria-hidden="true"><img className="card-brand-mark" src="./ea-symbol.png" alt="" draggable={false} /><span className="card-tap-hint">TOQUE PARA VIRAR</span></span>
+              <span className="card-front" aria-hidden={card.face === null}>{card.face !== null && <ProductImage key={card.face} face={card.face} />}{card.matched && <b aria-label="Par encontrado">✓</b>}</span></span>
           </button>)}
-        </div>
+        </div></div>
         <div className="game-bottom"><span>✓ Seu brinde já está reservado</span><button className="text-button" onClick={() => setHelp(true)}>Preciso de ajuda</button></div>
       </section>)}
       {screen === 'admin' && <Admin configured={info?.configured ?? true} onClose={() => void nextParticipant()} onError={setError} />}
     </main>
     <footer className="app-footer"><span>ESTHETIC ALIGNER <span className="footer-divider">/</span> CONEXÕES QUE TRANSFORMAM</span><div className="sound-controls"><button onClick={() => void toggleMusic()} aria-pressed={music}>{music ? '♫ Som ligado' : '♫ Ligar som'}</button>{music && <input aria-label="Volume da música" type="range" min="0" max="1" step="0.05" value={volume} onChange={event => { const value = Number(event.target.value); setVolume(value); setMusicVolume(value); }} />}</div></footer>
     {error && <div className="modal-backdrop"><div className="modal" role="alertdialog" aria-labelledby="error-title" tabIndex={-1} ref={errorRef}><p className="eyebrow">ATENÇÃO</p><h2 id="error-title">Vamos conferir?</h2><p>{error}</p><button className="primary" onClick={() => setError('')}>Entendi</button></div></div>}
-    {privacy && <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="privacy-title"><h2 id="privacy-title">Seus dados, com transparência</h2><p>A Esthetic Aligner utiliza nome, e-mail, WhatsApp, cidade e informação profissional para identificar participantes, impedir participações repetidas e registrar a entrega dos brindes nesta ação.</p><p>O cadastro é salvo neste computador e pode ser enviado com segurança para o servidor da Esthetic Aligner. O contato comercial por e-mail e WhatsApp só será realizado se você marcar a autorização opcional, que pode ser revogada.</p><p>Para solicitar acesso, correção, exclusão ou revogação do consentimento, procure: <strong>{info?.privacyContact}</strong>.</p><p>A equipe responsável deve informar o prazo de retenção e excluir os dados quando não forem mais necessários. Aviso: 2026-11-v1.</p><button className="primary" onClick={() => setPrivacy(false)}>Voltar ao cadastro</button></div></div>}
+    {privacy && <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="privacy-title"><h2 id="privacy-title">Aviso de privacidade</h2><p>Seus dados serão coletados pela Esthetic Aligner para a participação nesta ação e o sorteio de brindes. Se você autorizar, também enviaremos informações sobre a Esthetic Aligner por e-mail e WhatsApp.</p><p>Para consultar, corrigir ou excluir seus dados, ou deixar de receber informações, fale com <strong>{info?.privacyContact}</strong>.</p><button className="primary" onClick={() => setPrivacy(false)}>Voltar ao cadastro</button></div></div>}
     {help && <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="help-title"><h2 id="help-title">A equipe pode ajudar</h2><p>Você pode jogar sem limite de tempo. Procure as fotos iguais e encontre todos os {game?.totalPairs ?? cards.length} pares.</p><p>Se precisar encerrar, chame a equipe para cancelar a partida no painel e liberar o brinde reservado.</p><button className="primary" onClick={() => setHelp(false)}>Continuar jogando</button></div></div>}
   </>;
 }

@@ -32,6 +32,13 @@ class Store {
         delivered INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 1
       );
       CREATE TABLE IF NOT EXISTS outbox (id TEXT PRIMARY KEY, version INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS email_outbox (
+        id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+        next_attempt INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '',
+        sent_at TEXT NOT NULL DEFAULT ''
+      );
+      CREATE TABLE IF NOT EXISTS email_suppressions (email TEXT PRIMARY KEY, created_at TEXT NOT NULL);
     `);
     if (!this.setting('deviceId')) this.setSetting('deviceId', randomUUID());
     this.persist();
@@ -144,6 +151,8 @@ class Store {
         id, JSON.stringify(lead), new Date().toISOString(), 'active', prize.id, JSON.stringify(board)
       ]);
       this.queue(id);
+      if (lead.marketing) this.db.run(`INSERT OR IGNORE INTO email_outbox (id, email)
+        SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM email_suppressions WHERE email = ?)`, [id, lead.email, lead.email]);
       return this.gameView(id);
     });
   }
@@ -205,6 +214,7 @@ class Store {
     this.transaction(() => {
       this.db.run('UPDATE prizes SET available = available + 1 WHERE id = ?', [game.prize_id]);
       this.db.run("UPDATE games SET status = 'cancelled', version = version + 1 WHERE id = ?", [id]);
+      this.db.run("UPDATE email_outbox SET status = 'cancelled' WHERE id = ? AND status IN ('pending', 'failed', 'uncertain')", [id]);
       this.queue(id);
     });
   }

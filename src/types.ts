@@ -49,6 +49,28 @@ export interface AdminInfo {
   lastSync: string;
   syncError: string;
   syncing: boolean;
+  emails: EmailInfo;
+}
+
+export interface EmailConfig {
+  enabled: boolean;
+  username: string;
+  fromName: string;
+  dentistSubject: string;
+  dentistBody: string;
+  studentSubject: string;
+  studentBody: string;
+}
+
+export type EmailStatus = 'pending' | 'sending' | 'sent' | 'uncertain' | 'failed' | 'cancelled';
+
+export interface EmailInfo {
+  config: EmailConfig;
+  passwordConfigured: boolean;
+  sending: boolean;
+  error: string;
+  counts: Partial<Record<EmailStatus, number>>;
+  queue: { id: string; email: string; status: EmailStatus; attempts: number; lastError: string; sentAt: string }[];
 }
 
 export interface Actions {
@@ -71,6 +93,10 @@ export interface Actions {
   backup: { input: { token: string }; output: boolean };
   fullscreen: { input: { token: string }; output: boolean };
   quit: { input: { token: string }; output: boolean };
+  'email.configure': { input: EmailConfig & { token: string; password: string }; output: boolean };
+  'email.test': { input: { token: string; student: boolean }; output: boolean };
+  'email.retry': { input: { token: string; id: string }; output: boolean };
+  'email.suppress': { input: { token: string; id: string }; output: boolean };
 }
 
 declare global {

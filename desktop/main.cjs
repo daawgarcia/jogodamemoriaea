@@ -1,10 +1,12 @@
-const { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker, safeStorage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { randomUUID } = require('node:crypto');
 const { Store, csv } = require('./store.cjs');
+const { EmailDelivery } = require('./email.cjs');
 
 let store;
+let emails;
 let window;
 let adminToken = '';
 let adminExpires = 0;
@@ -52,11 +54,25 @@ async function sync() {
 
 async function start() {
   store = await Store.open(path.join(app.getPath('userData'), 'ea-congresso.sqlite'));
+  emails = new EmailDelivery(store, {
+    encrypt(password) {
+      if (!safeStorage.isEncryptionAvailable()) throw new Error('O Windows não disponibilizou a proteção da senha. Não foi possível salvar.');
+      return safeStorage.encryptString(password).toString('base64');
+    },
+    decrypt(encrypted) {
+      if (!safeStorage.isEncryptionAvailable()) throw new Error('A proteção de senha do Windows não está disponível.');
+      return safeStorage.decryptString(Buffer.from(encrypted, 'base64'));
+    }
+  });
+  const processEmails = () => emails.process().catch(error => {
+    emails.error = `Não foi possível atualizar a fila de e-mails: ${error.message}`;
+    console.error(emails.error);
+  });
   window = new BrowserWindow({
     width: 720, height: 1100, minWidth: 480, minHeight: 700,
     fullscreen: app.isPackaged, autoHideMenuBar: true,
     icon: path.join(__dirname, '..', 'build', 'icon.ico'),
-    title: 'Jogo da Memória EA', backgroundColor: '#071a36',
+    title: 'Jogo da Memória EA', backgroundColor: '#f7f9f9',
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -68,7 +84,7 @@ async function start() {
     try {
       if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error('Origem não autorizada.');
       if (typeof action !== 'string') throw new Error('Ação inválida.');
-      const adminActions = ['admin', 'prize.add', 'prize.stock', 'prize.remove', 'game.cancel', 'game.deliver', 'cloud', 'sync', 'export', 'backup', 'fullscreen', 'quit'];
+      const adminActions = ['admin', 'prize.add', 'prize.stock', 'prize.remove', 'game.cancel', 'game.deliver', 'cloud', 'sync', 'export', 'backup', 'fullscreen', 'quit', 'email.configure', 'email.test', 'email.retry', 'email.suppress'];
       if (adminActions.includes(action) && (!adminToken || data.token !== adminToken || Date.now() > adminExpires)) throw new Error('Acesso administrativo expirado. Entre novamente.');
       if (adminActions.includes(action)) adminExpires = Date.now() + 15 * 60 * 1000;
       let result;
@@ -86,7 +102,11 @@ async function start() {
         case 'start': result = store.start(data); break;
         case 'flip': result = store.flip(data.id, data.index); break;
         case 'game': result = store.gameView(data.id); break;
-        case 'admin': result = { ...store.adminInfo(), syncError, syncing }; break;
+        case 'admin': result = { ...store.adminInfo(), syncError, syncing, emails: emails.info() }; break;
+        case 'email.configure': emails.configure(data); result = true; break;
+        case 'email.test': await emails.test(data.student); result = true; break;
+        case 'email.retry': emails.retry(data.id); result = true; break;
+        case 'email.suppress': emails.suppress(data.id); result = true; break;
         case 'prize.add': store.addPrize(data); result = true; break;
         case 'prize.stock': store.addStock(data.id, data.quantity); result = true; break;
         case 'prize.remove': store.removeStock(data.id); result = true; break;
@@ -116,7 +136,9 @@ async function start() {
   powerSaveBlocker.start('prevent-display-sleep');
   await window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   setInterval(sync, 30000).unref();
+  setInterval(processEmails, 30000).unref();
   void sync();
+  void processEmails();
 }
 
 app.on('window-all-closed', () => app.quit());
